@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -10,7 +11,7 @@ import (
 
 	ipfs "github.com/ipfs/go-ipfs-api"
 	files "github.com/whyrusleeping/go-multipart-files"
-	rpc "github.com/whyrusleeping/zmsg/rpc"
+	rpc "github.com/whyrusleeping/jrpc"
 )
 
 func fatal(i interface{}) {
@@ -65,11 +66,11 @@ func getBestBlock() (string, error) {
 	return out["result"].(string), nil
 }
 
-func ipfsPutBlock(data string) (string, error) {
+func ipfsPutBlock(data, kind string) (string, error) {
 	req := ipfs.NewRequest("localhost:5001", "dag/put")
 	req.Opts = map[string]string{
 		"input-enc": "hex",
-		"format":    "zcash",
+		"format":    kind,
 	}
 
 	r := strings.NewReader(data)
@@ -89,18 +90,26 @@ func ipfsPutBlock(data string) (string, error) {
 		return "", resp.Error
 	}
 
-	var out map[string]string
-	json.NewDecoder(resp.Output).Decode(&out)
-	return out["Cid"], nil
+	var out struct {
+		Cid string
+	}
+	err = json.NewDecoder(resp.Output).Decode(&out)
+	if err != nil {
+		return "", err
+	}
 
+	return out.Cid, nil
 }
 
 func main() {
-	sh := ipfs.NewShell("localhost:5001")
-	_ = sh
+	bctype := flag.String("type", "zcash", "select type of blockchain to import")
+	flag.Parse()
+	_ = bctype
+	rpc.DefaultClient.Pass = "password"
+	rpc.DefaultClient.User = "user"
 
 	var cur string
-	if len(os.Args) > 1 {
+	if len(flag.Args()) > 1 {
 		cur = os.Args[1]
 	} else {
 		bestBlk, err := getBestBlock()
@@ -116,7 +125,7 @@ func main() {
 			fatal(err)
 		}
 
-		ipfshash, err := ipfsPutBlock(blkdata)
+		ipfshash, err := ipfsPutBlock(blkdata, "zcash")
 		if err != nil {
 			fatal(err)
 		}
