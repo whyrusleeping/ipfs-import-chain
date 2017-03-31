@@ -91,14 +91,16 @@ func ipfsPutBlock(data, kind string) (string, error) {
 	}
 
 	var out struct {
-		Cid string
+		Cid struct {
+			Target string `json:"/"`
+		}
 	}
 	err = json.NewDecoder(resp.Output).Decode(&out)
 	if err != nil {
 		return "", err
 	}
 
-	return out.Cid, nil
+	return out.Cid.Target, nil
 }
 
 func main() {
