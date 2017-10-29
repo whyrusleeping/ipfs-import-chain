@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -67,7 +68,7 @@ func getBestBlock() (string, error) {
 }
 
 func ipfsPutBlock(data, kind string) (string, error) {
-	req := ipfs.NewRequest("localhost:5001", "dag/put")
+	req := ipfs.NewRequest(context.Background(), "localhost:5001", "dag/put")
 	req.Opts = map[string]string{
 		"input-enc": "hex",
 		"format":    kind,
